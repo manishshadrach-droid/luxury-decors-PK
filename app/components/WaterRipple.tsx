@@ -15,36 +15,21 @@ if(!container) return
 /* ------------------------- */
 /* AUDIO SETUP */
 /* ------------------------- */
-
 const audio = new Audio("/sounds/water-drop.mp3")
-
 audio.volume = 1
 audio.preload = "auto"
 
-/* sound function */
+let started = false
 
-function playDropSound(){
-
-try{
-
-audio.currentTime = 0
-audio.play()
-
-}catch(e){
-
-console.log("audio blocked")
-
-}
-
-}
-
-/* play sound every 5 seconds */
-
-setInterval(()=>{
-
-playDropSound()
-
-},5000)
+document.addEventListener("click", () => {
+  if(!started){
+    started = true
+    setInterval(()=>{
+      audio.currentTime = 0
+      audio.play().catch(()=>{})
+    },5000)
+  }
+})
 
 /* play sound on any click */
 
