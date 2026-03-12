@@ -4,15 +4,13 @@ import { prisma } from "@/lib/prisma"
 import Link from "next/link"
 import { Product } from "@prisma/client"
 
-interface PageProps {
-  params: {
-    name: string
-  }
-}
+export default async function CategoryPage({
+  params,
+}: {
+  params: { name: string }
+}) {
 
-export default async function CategoryPage({ params }: PageProps) {
-
-  const { name } = params
+  const name = params.name
 
   let products: Product[] = []
 
@@ -28,7 +26,6 @@ export default async function CategoryPage({ params }: PageProps) {
 
   return (
     <div className="min-h-screen bg-gray-50 py-16 px-8">
-
       <div className="max-w-7xl mx-auto">
 
         <h1 className="text-3xl font-bold mb-10 capitalize">
@@ -38,11 +35,7 @@ export default async function CategoryPage({ params }: PageProps) {
         <div className="grid md:grid-cols-3 gap-8">
 
           {products.map((product) => (
-
-            <Link
-              key={product.id}
-              href={`/product/${product.slug}`}
-            >
+            <Link key={product.id} href={`/product/${product.slug}`}>
 
               <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
 
@@ -60,13 +53,11 @@ export default async function CategoryPage({ params }: PageProps) {
               </div>
 
             </Link>
-
           ))}
 
         </div>
 
       </div>
-
     </div>
   )
 }
