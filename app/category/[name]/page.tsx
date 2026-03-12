@@ -70,5 +70,3 @@ export default async function CategoryPage({ params }: PageProps) {
     </div>
   )
 }
-
-.folders path: next>app>lib> node_modules>prisma>public>types>.gitigor>biome.json>next-env.d.tspackage-lock.json>package.json>potscss.config>readme.md>tailwind.config.cjs>tsconfig.json
