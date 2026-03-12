@@ -3,81 +3,84 @@
 import { useEffect, useRef } from "react"
 import { Renderer, Camera, Transform, Program, Mesh, Triangle, Texture } from "ogl"
 
-export default function WaterRipple(){
+export default function WaterRipple() {
 
-const containerRef = useRef<HTMLDivElement>(null)
+  const containerRef = useRef<HTMLDivElement>(null)
 
-useEffect(()=>{
+  useEffect(() => {
 
-const container = containerRef.current
-if(!container) return
+    const container = containerRef.current
+    if (!container) return
 
-/* ------------------------- */
-/* AUDIO SETUP */
-/* ------------------------- */
-const audio = new Audio("/sounds/water-drop.mp3")
-audio.volume = 1
-audio.preload = "auto"
+    /* ------------------------- */
+    /* AUDIO SETUP */
+    /* ------------------------- */
 
-let started = false
+    const audio = new Audio("/sounds/water-drop.mp3")
+    audio.volume = 1
+    audio.preload = "auto"
 
-document.addEventListener("click", () => {
-  if(!started){
-    started = true
-    setInterval(()=>{
+    let started = false
+    let audioInterval: any
+
+    const playDropSound = () => {
       audio.currentTime = 0
-      audio.play().catch(()=>{})
-    },5000)
-  }
-})
+      audio.play().catch(() => {})
+    }
 
-/* play sound on any click */
+    const handleClick = () => {
 
-document.addEventListener("click",()=>{
+      playDropSound()
 
-playDropSound()
+      if (!started) {
+        started = true
 
-})
+        audioInterval = setInterval(() => {
+          audio.currentTime = 0
+          audio.play().catch(() => {})
+        }, 5000)
+      }
 
-/* ------------------------- */
-/* RENDERER */
-/* ------------------------- */
+    }
 
-const renderer = new Renderer({ alpha:true, dpr:2 })
-const gl = renderer.gl
+    document.addEventListener("click", handleClick)
 
-container.appendChild(gl.canvas)
+    /* ------------------------- */
+    /* RENDERER */
+    /* ------------------------- */
 
-const camera = new Camera(gl)
-camera.position.z = 1
+    const renderer = new Renderer({ alpha: true, dpr: 2 })
+    const gl = renderer.gl
 
-const scene = new Transform()
+    container.appendChild(gl.canvas)
 
-const geometry = new Triangle(gl)
+    const camera = new Camera(gl)
+    camera.position.z = 1
 
-/* ------------------------- */
-/* HERO IMAGE TEXTURE */
-/* ------------------------- */
+    const scene = new Transform()
 
-const texture = new Texture(gl)
+    const geometry = new Triangle(gl)
 
-const img = new Image()
+    /* ------------------------- */
+    /* HERO IMAGE TEXTURE */
+    /* ------------------------- */
 
-img.src = "/hero/hero-new.jpg"
+    const texture = new Texture(gl)
 
-img.onload = ()=>{
+    const img = new Image()
+    img.src = "/hero/hero-new.jpg"
 
-texture.image = img
+    img.onload = () => {
+      texture.image = img
+    }
 
-}
+    /* ------------------------- */
+    /* SHADER */
+    /* ------------------------- */
 
-/* ------------------------- */
-/* SHADER */
-/* ------------------------- */
+    const program = new Program(gl, {
 
-const program = new Program(gl,{
-
-vertex:`
+      vertex: `
 
 attribute vec2 uv;
 attribute vec2 position;
@@ -85,33 +88,27 @@ attribute vec2 position;
 varying vec2 vUv;
 
 void main(){
-
 vUv = uv;
 gl_Position = vec4(position,0,1);
-
 }
 
 `,
 
-fragment:`
+      fragment: `
 
 precision highp float;
 
 uniform sampler2D tMap;
-
 uniform float uTime;
 uniform vec2 uCenter;
 
 varying vec2 vUv;
-
-/* mandala reflection */
 
 float mandala(vec2 uv){
 
 vec2 p = uv - 0.5;
 
 float r = length(p);
-
 float a = atan(p.y,p.x);
 
 float pattern = sin(a * 10.0) * 0.5 + 0.5;
@@ -124,45 +121,27 @@ void main(){
 
 float dist = distance(vUv,uCenter);
 
-/* slow viscous ripple */
-
 float ripple = sin((dist - uTime*0.03)*9.0);
 
-/* ripple mask */
-
 float mask = smoothstep(0.8,0.0,dist);
-
-/* viscosity */
 
 float viscosity = exp(-dist * 4.0);
 
 float strength = ripple * mask * viscosity;
 
-/* image refraction */
-
 vec2 uv = vUv + normalize(vUv - uCenter) * strength * 0.015;
 
-/* distorted hero image */
-
 vec3 imageColor = texture2D(tMap,uv).rgb;
-
-/* gold reflection */
 
 vec3 gold = vec3(0.78,0.66,0.41);
 
 float highlight = smoothstep(0.0,0.2,dist);
 
-/* mandala reflection */
-
 float mandalaPattern = mandala(vUv);
-
-/* final color */
 
 vec3 color = mix(imageColor,gold,highlight*0.15);
 
 color += mandalaPattern * 0.08;
-
-/* transparent water */
 
 gl_FragColor = vec4(color,0.45);
 
@@ -170,91 +149,108 @@ gl_FragColor = vec4(color,0.45);
 
 `,
 
-uniforms:{
-uTime:{ value:0 },
-uCenter:{ value:[0.5,0.5] },
-tMap:{ value:texture }
-}
+      uniforms: {
+        uTime: { value: 0 },
+        uCenter: { value: [0.5, 0.5] },
+        tMap: { value: texture }
+      }
 
-})
+    })
 
-const mesh = new Mesh(gl,{ geometry, program })
-mesh.setParent(scene)
+    const mesh = new Mesh(gl, { geometry, program })
+    mesh.setParent(scene)
 
-/* ------------------------- */
-/* RESIZE */
-/* ------------------------- */
+    /* ------------------------- */
+    /* RESIZE */
+    /* ------------------------- */
 
-function resize(){
+    const resize = () => {
+      renderer.setSize(container.clientWidth, container.clientHeight)
+    }
 
-renderer.setSize(container.clientWidth,container.clientHeight)
+    window.addEventListener("resize", resize)
 
-}
+    resize()
 
-window.addEventListener("resize",resize)
+    let start = performance.now()
 
-resize()
+    /* ------------------------- */
+    /* RIPPLE */
+    /* ------------------------- */
 
-let start = performance.now()
+    const triggerDrop = (x: number, y: number) => {
 
-/* ------------------------- */
-/* RIPPLE */
-/* ------------------------- */
+      program.uniforms.uCenter.value = [x, y]
 
-function triggerDrop(x:number,y:number){
+      start = performance.now()
 
-program.uniforms.uCenter.value = [x,y]
+    }
 
-start = performance.now()
+    const rippleInterval = setInterval(() => {
 
-}
+      triggerDrop(0.5, 0.5)
 
-/* ripple every 20 seconds */
+    }, 20000)
 
-setInterval(()=>{
+    const clickRipple = (e: MouseEvent) => {
 
-triggerDrop(0.5,0.5)
+      const rect = container.getBoundingClientRect()
 
-},20000)
+      const x = (e.clientX - rect.left) / rect.width
+      const y = 1 - (e.clientY - rect.top) / rect.height
 
-/* ripple on click */
+      triggerDrop(x, y)
 
-container.addEventListener("click",(e)=>{
+    }
 
-const rect = container.getBoundingClientRect()
+    container.addEventListener("click", clickRipple)
 
-const x = (e.clientX - rect.left) / rect.width
-const y = 1 - (e.clientY - rect.top) / rect.height
+    /* ------------------------- */
+    /* ANIMATION LOOP */
+    /* ------------------------- */
 
-triggerDrop(x,y)
+    let animationId: number
 
-})
+    const update = (t: number) => {
 
-/* ------------------------- */
-/* ANIMATION LOOP */
-/* ------------------------- */
+      program.uniforms.uTime.value = (t - start) * 0.001
 
-function update(t:number){
+      renderer.render({ scene, camera })
 
-program.uniforms.uTime.value = (t-start)*0.001
+      animationId = requestAnimationFrame(update)
 
-renderer.render({ scene, camera })
+    }
 
-requestAnimationFrame(update)
+    animationId = requestAnimationFrame(update)
 
-}
+    /* ------------------------- */
+    /* CLEANUP (IMPORTANT) */
+    /* ------------------------- */
 
-requestAnimationFrame(update)
+    return () => {
 
-},[])
+      document.removeEventListener("click", handleClick)
+      container.removeEventListener("click", clickRipple)
+      window.removeEventListener("resize", resize)
 
-return(
+      clearInterval(audioInterval)
+      clearInterval(rippleInterval)
 
-<div
-ref={containerRef}
-className="absolute inset-0 pointer-events-auto z-[2]"
-/>
+      cancelAnimationFrame(animationId)
 
-)
+      gl.canvas.remove()
+
+    }
+
+  }, [])
+
+  return (
+
+    <div
+      ref={containerRef}
+      className="absolute inset-0 pointer-events-auto z-[2]"
+    />
+
+  )
 
 }

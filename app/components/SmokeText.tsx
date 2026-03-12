@@ -1,15 +1,8 @@
 "use client"
 
-import { useCallback } from "react"
 import Particles from "@tsparticles/react"
-import { loadAll } from "@tsparticles/all"
-import type { Engine } from "@tsparticles/engine"
 
 export default function SmokeText() {
-
-  const particlesInit = useCallback(async (engine: Engine) => {
-    await loadAll(engine)
-  }, [])
 
   return (
 
@@ -17,25 +10,23 @@ export default function SmokeText() {
 
       <Particles
         id="smoke"
-        init={particlesInit}
         className="absolute inset-0"
         options={{
           fullScreen:false,
 
           particles:{
             number:{ value:100 },
-
             color:{ value:"#ffffff" },
-
             opacity:{ value:0.35 },
-
             size:{ value:{ min:2, max:5 } },
 
             move:{
               enable:true,
               speed:0.5,
               random:true,
-              outModes:"out"
+              outModes:{
+                default:"out"
+              }
             }
           },
 
@@ -46,7 +37,6 @@ export default function SmokeText() {
                 mode:"repulse"
               }
             },
-
             modes:{
               repulse:{
                 distance:140
